@@ -25,3 +25,28 @@ CREATE TABLE IF NOT EXISTS jobs (
 
 CREATE INDEX IF NOT EXISTS idx_jobs_claimable
 	ON jobs (queue, status, run_at);
+
+CREATE TABLE IF NOT EXISTS dead_letters (
+	id       INTEGER PRIMARY KEY,
+	queue    TEXT    NOT NULL,
+	payload  TEXT    NOT NULL,
+	attempts INTEGER NOT NULL,
+	error    TEXT,
+	died_at  INTEGER NOT NULL
+);
+`
+
+func OpenDB(path string) (*sql.DB, error) {
+	db, err := sql.Open("sqlite", path)
+	if err != nil {
+		return nil, fmt.Errorf("open db: %w", err)
+	}
+
+	if _, err := db.Exec(schemaSQL); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("migrate: %w", err)
+	}
+
+	return db, nil
+}
+
